@@ -388,7 +388,17 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
-    .yoda-avatar { flex-shrink: 0; width: 64px; height: 64px; object-fit: contain; border-radius: 8px; }
+    .yoda-ascii {
+      flex-shrink: 0;
+      font-family: monospace;
+      font-size: 0.55rem;
+      line-height: 1.25;
+      color: #4ade80;
+      text-shadow: 0 0 6px #22c55e, 0 0 12px #16a34a;
+      white-space: pre;
+      margin: 0;
+      user-select: none;
+    }
     .yoda-text { font-size: 0.82rem; color: #c4b5fd; line-height: 1.4; font-style: italic; }
 
     /* ── Footer ── */
@@ -405,7 +415,7 @@
 
   <!-- Yoda toast -->
   <div id="yoda-toast">
-    <img class="yoda-avatar" src="https://media.giphy.com/media/3o7abtinE2QuMikOKk/giphy.gif" alt="Yoda" />
+    <pre class="yoda-ascii" id="yoda-ascii"></pre>
     <div class="yoda-text" id="yoda-text"></div>
   </div>
 
@@ -555,12 +565,78 @@
     function getYodaQuote() {
       return YODA_QUOTES[Math.floor(Math.random() * YODA_QUOTES.length)];
     }
+    /* ─── Yoda ASCII animation ─── */
+    const YODA_FRAMES = [
+`  _   _
+ / \\_/ \\
+( o v o )
+  )   (
+ /|   |\\
+(_)   (_)`,
+
+`  _   _
+ / \\_/ \\
+( - v - )
+  )   (
+ /|   |\\
+(_)   (_)`,
+
+`  _   _
+ / \\_/ \\
+( o v o )
+  )   (
+\\=|   |=/
+(_)   (_)`,
+
+`  _   _
+ / \\_/ \\
+( ^ v ^ )
+  )   (
+\\=|   |=/
+(_)   (_)`,
+
+`  _   _
+ / \\_/ \\
+( o v o )
+  ) ~ (
+ /|   |\\
+(_)   (_)`,
+
+`  _   _
+ / \\_/ \\
+( - v - )
+  ) ~ (
+\\=|   |=/
+(_)   (_)`,
+    ];
+
+    let _yodaFrame = 0;
+    let _yodaInterval = null;
+
+    function startYodaAnim() {
+      const el = document.getElementById('yoda-ascii');
+      _yodaFrame = 0;
+      el.textContent = YODA_FRAMES[0];
+      clearInterval(_yodaInterval);
+      _yodaInterval = setInterval(() => {
+        _yodaFrame = (_yodaFrame + 1) % YODA_FRAMES.length;
+        el.textContent = YODA_FRAMES[_yodaFrame];
+      }, 350);
+    }
+
+    function stopYodaAnim() {
+      clearInterval(_yodaInterval);
+      _yodaInterval = null;
+    }
+
     function showYoda(msg) {
       document.getElementById('yoda-text').textContent = msg;
       document.getElementById('yoda-toast').classList.add('visible');
+      startYodaAnim();
       clearTimeout(window._yodaTimer);
       window._yodaTimer = setTimeout(() => {
         document.getElementById('yoda-toast').classList.remove('visible');
+        stopYodaAnim();
       }, 5000);
     }
 
