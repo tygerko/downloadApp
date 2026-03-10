@@ -388,17 +388,7 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
-    .yoda-ascii {
-      flex-shrink: 0;
-      font-family: monospace;
-      font-size: 0.55rem;
-      line-height: 1.25;
-      color: #4ade80;
-      text-shadow: 0 0 6px #22c55e, 0 0 12px #16a34a;
-      white-space: pre;
-      margin: 0;
-      user-select: none;
-    }
+    #yoda-canvas { flex-shrink: 0; image-rendering: pixelated; }
     .yoda-text { font-size: 0.82rem; color: #c4b5fd; line-height: 1.4; font-style: italic; }
 
     /* ── Footer ── */
@@ -415,7 +405,7 @@
 
   <!-- Yoda toast -->
   <div id="yoda-toast">
-    <pre class="yoda-ascii" id="yoda-ascii"></pre>
+    <canvas id="yoda-canvas" width="50" height="70"></canvas>
     <div class="yoda-text" id="yoda-text"></div>
   </div>
 
@@ -565,63 +555,108 @@
     function getYodaQuote() {
       return YODA_QUOTES[Math.floor(Math.random() * YODA_QUOTES.length)];
     }
-    /* ─── Yoda ASCII animation ─── */
-    const YODA_FRAMES = [
-`  _   _
- / \\_/ \\
-( o v o )
-  )   (
- /|   |\\
-(_)   (_)`,
+    /* ─── Pixel Art Yoda ─── */
+    // Palette: 0=transparent 1=skin 2=darkskin 3=lightskin 4=white 5=black 6=robe 7=darkrobe 8=lightbrown 9=robehi
+    const C = ['', '#6aad4a', '#3d7030', '#8fd46a', '#ffffff', '#111111', '#8B6030', '#5c3d18', '#c8a060', '#a07840'];
+    const PIX = 5;
 
-`  _   _
- / \\_/ \\
-( - v - )
-  )   (
- /|   |\\
-(_)   (_)`,
-
-`  _   _
- / \\_/ \\
-( o v o )
-  )   (
-\\=|   |=/
-(_)   (_)`,
-
-`  _   _
- / \\_/ \\
-( ^ v ^ )
-  )   (
-\\=|   |=/
-(_)   (_)`,
-
-`  _   _
- / \\_/ \\
-( o v o )
-  ) ~ (
- /|   |\\
-(_)   (_)`,
-
-`  _   _
- / \\_/ \\
-( - v - )
-  ) ~ (
-\\=|   |=/
-(_)   (_)`,
+    // 10 cols x 14 rows — each frame is an array of rows
+    // Frame A: neutral, eyes open, arms down
+    const FA = [
+      [0,0,1,0,0,0,0,1,0,0],
+      [0,1,1,0,0,0,1,1,0,0],
+      [1,1,1,1,1,1,1,1,1,0],
+      [1,1,4,5,1,1,4,5,1,0],
+      [1,1,1,2,2,2,2,1,1,0],
+      [0,1,1,1,2,2,1,1,0,0],
+      [0,0,6,6,6,6,6,6,0,0],
+      [0,6,6,9,6,6,9,6,6,0],
+      [6,6,6,6,6,6,6,6,6,6],
+      [6,6,7,6,6,6,6,7,6,6],
+      [0,6,6,6,6,6,6,6,6,0],
+      [0,0,6,6,0,0,6,6,0,0],
+      [0,0,7,6,0,0,6,7,0,0],
+      [0,7,7,7,0,0,7,7,7,0],
     ];
+    // Frame B: blink
+    const FB = [
+      [0,0,1,0,0,0,0,1,0,0],
+      [0,1,1,0,0,0,1,1,0,0],
+      [1,1,1,1,1,1,1,1,1,0],
+      [1,1,2,2,1,1,2,2,1,0],
+      [1,1,1,2,2,2,2,1,1,0],
+      [0,1,1,1,2,2,1,1,0,0],
+      [0,0,6,6,6,6,6,6,0,0],
+      [0,6,6,9,6,6,9,6,6,0],
+      [6,6,6,6,6,6,6,6,6,6],
+      [6,6,7,6,6,6,6,7,6,6],
+      [0,6,6,6,6,6,6,6,6,0],
+      [0,0,6,6,0,0,6,6,0,0],
+      [0,0,7,6,0,0,6,7,0,0],
+      [0,7,7,7,0,0,7,7,7,0],
+    ];
+    // Frame C: arms raised
+    const FC = [
+      [0,0,1,0,0,0,0,1,0,0],
+      [0,1,1,0,0,0,1,1,0,0],
+      [1,1,1,1,1,1,1,1,1,0],
+      [1,1,4,5,1,1,4,5,1,0],
+      [1,1,1,2,2,2,2,1,1,0],
+      [0,1,1,1,2,2,1,1,0,0],
+      [0,0,6,6,6,6,6,6,0,0],
+      [6,7,6,9,6,6,9,6,7,6],
+      [6,6,7,6,6,6,6,7,6,6],
+      [0,6,6,7,6,6,7,6,6,0],
+      [0,6,6,6,6,6,6,6,6,0],
+      [0,0,6,6,0,0,6,6,0,0],
+      [0,0,7,6,0,0,6,7,0,0],
+      [0,7,7,7,0,0,7,7,7,0],
+    ];
+    // Frame D: arms raised + blink
+    const FD = [
+      [0,0,1,0,0,0,0,1,0,0],
+      [0,1,1,0,0,0,1,1,0,0],
+      [1,1,1,1,1,1,1,1,1,0],
+      [1,1,2,2,1,1,2,2,1,0],
+      [1,1,1,2,2,2,2,1,1,0],
+      [0,1,1,1,2,2,1,1,0,0],
+      [0,0,6,6,6,6,6,6,0,0],
+      [6,7,6,9,6,6,9,6,7,6],
+      [6,6,7,6,6,6,6,7,6,6],
+      [0,6,6,7,6,6,7,6,6,0],
+      [0,6,6,6,6,6,6,6,6,0],
+      [0,0,6,6,0,0,6,6,0,0],
+      [0,0,7,6,0,0,6,7,0,0],
+      [0,7,7,7,0,0,7,7,7,0],
+    ];
+
+    // Animation sequence: A A A B  A A C C  A A B C  A ...
+    const YODA_SEQ = [FA, FA, FA, FB, FA, FA, FC, FD, FA, FC, FB, FA];
+
+    function drawYodaFrame(frame) {
+      const canvas = document.getElementById('yoda-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      frame.forEach((row, y) => {
+        row.forEach((px, x) => {
+          if (!px) return;
+          ctx.fillStyle = C[px];
+          ctx.fillRect(x * PIX, y * PIX, PIX, PIX);
+        });
+      });
+    }
 
     let _yodaFrame = 0;
     let _yodaInterval = null;
 
     function startYodaAnim() {
-      const el = document.getElementById('yoda-ascii');
       _yodaFrame = 0;
-      el.textContent = YODA_FRAMES[0];
+      drawYodaFrame(YODA_SEQ[0]);
       clearInterval(_yodaInterval);
       _yodaInterval = setInterval(() => {
-        _yodaFrame = (_yodaFrame + 1) % YODA_FRAMES.length;
-        el.textContent = YODA_FRAMES[_yodaFrame];
-      }, 350);
+        _yodaFrame = (_yodaFrame + 1) % YODA_SEQ.length;
+        drawYodaFrame(YODA_SEQ[_yodaFrame]);
+      }, 300);
     }
 
     function stopYodaAnim() {
